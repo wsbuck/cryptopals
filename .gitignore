@@ -3,5 +3,5 @@
 .DS_Store
 .env*
 *log*
-*temp*
+*/temp/*
 */.vscode
