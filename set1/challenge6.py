@@ -1,12 +1,20 @@
 from base64 import b64decode
 
-from collections import OrderedDict
-
-
 def main():
+    byte_list = read_text('./6.txt')
+    probable_keysizes = get_probable_keysizes(byte_list)
+    blocks = keysize_blocks(byte_list, list(probable_keysizes)[0])
+    transposed_blocks = transpose_blocks(blocks)
+    key = [break_single_xor(block) for block in transposed_blocks]
+    key = ''.join([chr(key_i) for key_i in key])
+    decoded_message = decode(byte_list, key)
+    print(decoded_message)
+
+
+def read_text(filename):
     byte_list = []
     block = ''
-    with open('./6.txt') as f:
+    with open(filename) as f:
         while True:
             temp_char = f.read(1)
             if not temp_char:
@@ -19,14 +27,7 @@ def main():
                     #print("hex: %s" % hex(byte))
                     byte_list.append(byte)
                 block = ''
-
-    probable_keysizes = get_probable_keysizes(byte_list)
-    blocks = keysize_blocks(byte_list, list(probable_keysizes)[0])
-    transposed_blocks = transpose_blocks(blocks)
-    key = [break_single_xor(block) for block in transposed_blocks]
-    key = ''.join([chr(key_i) for key_i in key])
-    decoded_message = decode(byte_list, key)
-    print(decoded_message)
+    return byte_list
 
 
 def hamming_dist(a, b):
