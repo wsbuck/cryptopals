@@ -3,7 +3,7 @@ import base64
 
 sys.path.append("..")
 
-from crypto_tools import AES
+from crypto_tools.AES import AES
 
 
 def main():
