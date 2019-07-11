@@ -464,8 +464,11 @@ class AES:
 
 
 class EncryptionOracle:
-    def __init__(self):
-        self.mode = ["ECB", "CBC"][randint(0, 1)]
+    def __init__(self, mode=None):
+        if mode == None:
+            self.mode = ["ECB", "CBC"][randint(0, 1)]
+        else:
+            self.mode = mode
         self.size = 16
         self.iv = self.generate_random_bytes()
         self.key = self.generate_random_bytes()
@@ -491,9 +494,34 @@ class EncryptionOracle:
                 counter += 1
         return inpt_alt
     
-    def encrypt(self, inpt: bytearray):
+    def append_and_encrypt(self, inpt: bytearray):
         inpt_alt = self.__rand_append_input(inpt)
         return self.encryptor.encrypt(inpt_alt, self.key)
+
+    def encrypt(self, inpt: bytearray):
+       return self.encryptor.encrypt(inpt, self.key) 
+
+    def find_block_size(self, unknown: bytearray):
+        """unknown should be b64 decoded but encrypted"""
+        my_buffer = bytes("A" * 32, "ascii")
+        last_encrypted = " " * 32
+        for i in range(1, 33):
+            plaintext = my_buffer[0:i] + unknown
+            encrypted = self.encrypt(plaintext)[:32]
+            if encrypted[:8] == last_encrypted[:8]:
+                return (i - 1)
+            last_encrypted = encrypted
+
+    def detect_mode(self, inpt):
+        reps = 0
+        blocks = [inpt[i: i + 16] for i in range(0, len(inpt), 16)]
+        blocks_len = len(blocks)
+        for i in range(blocks_len - 1, 0, -1):
+            for j in range(i):
+                if blocks[i] == blocks[j]:
+                    return "ECB"
+        return "CBC"
+
 
 def detect_mode(inpt: bytearray):
     reps = 0
@@ -504,6 +532,20 @@ def detect_mode(inpt: bytearray):
             if blocks[i] == blocks[j]:
                 return "ECB"
     return "CBC"
+
+def pkcs7_pad(inpt):
+    input_len = len(inpt)
+    pad_len = 0 if input_len % 16 == 0 else 16 - (input_len % 16)
+    output_len = input_len + pad_len
+    outpt = bytearray(output_len)
+
+    for i in range(output_len):
+        if i >= input_len:
+            outpt[i] = pad_len
+        else:
+            outpt[i] = inpt[i]
+
+    return outpt
 
 # def main():
 #     encryptor = AES(mode="CBC")
