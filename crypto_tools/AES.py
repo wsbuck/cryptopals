@@ -375,14 +375,14 @@ class AES:
 
         return outpt
 
-    def __pdcs7_unpad(self, inpt):
+    def __pkcs7_unpad(self, inpt):
         input_len = len(inpt)
         val_len = len(inpt)
         outpt = bytearray(input_len)
 
         if inpt[input_len - 1] < 16:
             pad_len = inpt[input_len - 1]
-            if check_same(inpt, input_len - pad_len, input_len - 1):
+            if self.__check_same(inpt, input_len - pad_len, input_len - 1):
                 val_len = input_len - pad_len
 
         outpt = bytearray(val_len)
@@ -427,11 +427,16 @@ class AES:
                         counter += 1
             
             i += 1
-        
+
+        outpt = self.__pkcs7_unpad(outpt)
         return outpt
         
 
-    def encrypt(self, inpt: bytearray, key: bytes):
+    def encrypt(self, inpt, key):
+        if type(inpt) not in [bytes, bytearray]:
+            inpt = bytearray(inpt, "ascii")
+        if type(key) not in [bytes, bytearray]:
+            key = bytes(key, "ascii")
         self.key = key
         inpt = self.__pkcs7_pad(inpt)
         input_len = len(inpt)
@@ -461,6 +466,9 @@ class AES:
             i += 1
 
         return output
+
+    def generate_random_bytes(self):
+        return bytearray([randint(0, 255) for _ in range(self.size)])
 
 
 class EncryptionOracle:

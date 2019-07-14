@@ -41,6 +41,8 @@ def main():
                 assert(len(my_encrypted) == block_size)
                 if my_encrypted == unk_encrypted:
                     found[i] = j
+                    # print(j)
+                    # print(bytes([j]).decode("ascii"), end="")
                     break
 
         print(found.decode("ascii"), end="")
