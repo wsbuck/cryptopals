@@ -384,6 +384,8 @@ class AES:
             pad_len = inpt[input_len - 1]
             if self.__check_same(inpt, input_len - pad_len, input_len - 1):
                 val_len = input_len - pad_len
+            else:
+                raise Exception("Bad padding!")
 
         outpt = bytearray(val_len)
         
@@ -604,6 +606,7 @@ class EncryptionOracle(AES):
     def append_and_encrypt(self, inpt: bytearray):
         inpt_alt = self.__rand_append_input(inpt)
         return self.encrypt(inpt_alt)
+
 
 # def main():
 #     encryptor = AES(mode="CBC")
