@@ -1,7 +1,8 @@
 from random import randint
 
 class AES:
-    def __init__(self, mode="ECB", iv=bytearray(16)):
+    def __init__(self, mode="ECB",
+     iv=bytearray([randint(0, 255) for _ in range(16)])):
         if mode in ["ECB", "CBC"]:
             self.mode = mode
         else:
@@ -122,8 +123,14 @@ class AES:
         self.round_key = bytearray(self.size)
     
     def __set_iv(self, iv):
+        self.prev_cipher = bytearray(16)
         if self.mode == "CBC":
-            self.prev_cipher = iv
+            # self.prev_cipher = iv
+            for col in range(4):
+                for row in range(4):
+                    c = iv[(col * 4) + row]
+                    self.prev_cipher[col + (row * 4)] = c
+            self.iv = self.prev_cipher.copy()
         else:
             self.prev_cipher = bytearray(16)
 
@@ -431,6 +438,7 @@ class AES:
             i += 1
 
         outpt = self.pkcs7_unpad(outpt)
+        self.prev_cipher = self.iv.copy()
         return outpt
         
 
@@ -466,96 +474,12 @@ class AES:
                         output[counter] = c
                         counter += 1
             i += 1
-
+        
+        self.prev_cipher = self.iv.copy()
         return output
 
     def generate_random_bytes(self):
         return bytearray([randint(0, 255) for _ in range(self.size)])
-
-
-# class EncryptionOracle:
-#     def __init__(self, mode=None):
-#         if mode == None:
-#             self.mode = ["ECB", "CBC"][randint(0, 1)]
-#         else:
-#             self.mode = mode
-#         self.size = 16
-#         self.iv = self.generate_random_bytes()
-#         self.key = self.generate_random_bytes()
-#         self.encryptor = AES(mode=self.mode, iv=self.iv)
-
-
-#     def generate_random_bytes(self):
-#         return bytearray([randint(0, 255) for _ in range(self.size)])
-    
-#     def __rand_append_input(self, inpt: bytearray):
-#         append_bytes = randint(5, 10)
-#         input_len = len(inpt)
-#         output_len = input_len + (2 * append_bytes)
-#         inpt_alt = bytearray(output_len)
-#         counter = 0
-#         for i in range(output_len):
-#             if i < append_bytes:
-#                 inpt_alt[i] = append_bytes
-#             elif i > input_len:
-#                 inpt_alt[i] = append_bytes
-#             else:
-#                 inpt_alt[i] = inpt[counter]
-#                 counter += 1
-#         return inpt_alt
-    
-#     def append_and_encrypt(self, inpt: bytearray):
-#         inpt_alt = self.__rand_append_input(inpt)
-#         return self.encryptor.encrypt(inpt_alt, self.key)
-
-#     def encrypt(self, inpt: bytearray):
-#        return self.encryptor.encrypt(inpt, self.key) 
-
-#     def find_block_size(self, unknown: bytearray):
-#         """unknown should be b64 decoded but encrypted"""
-#         my_buffer = bytes("A" * 32, "ascii")
-#         last_encrypted = " " * 32
-#         for i in range(1, 33):
-#             plaintext = my_buffer[0:i] + unknown
-#             encrypted = self.encrypt(plaintext)[:32]
-#             if encrypted[:8] == last_encrypted[:8]:
-#                 return (i - 1)
-#             last_encrypted = encrypted
-
-#     def detect_mode(self, inpt):
-#         reps = 0
-#         blocks = [inpt[i: i + 16] for i in range(0, len(inpt), 16)]
-#         blocks_len = len(blocks)
-#         for i in range(blocks_len - 1, 0, -1):
-#             for j in range(i):
-#                 if blocks[i] == blocks[j]:
-#                     return "ECB"
-#         return "CBC"
-
-
-# def detect_mode(inpt: bytearray):
-#     reps = 0
-#     blocks = [inpt[i: i + 16] for i in range(0, len(inpt), 16)]
-#     blocks_len = len(blocks)
-#     for i in range(blocks_len - 1, 0, -1):
-#         for j in range(i):
-#             if blocks[i] == blocks[j]:
-#                 return "ECB"
-#     return "CBC"
-
-# def pkcs7_pad(inpt):
-#     input_len = len(inpt)
-#     pad_len = 0 if input_len % 16 == 0 else 16 - (input_len % 16)
-#     output_len = input_len + pad_len
-#     outpt = bytearray(output_len)
-
-#     for i in range(output_len):
-#         if i >= input_len:
-#             outpt[i] = pad_len
-#         else:
-#             outpt[i] = inpt[i]
-
-#     return outpt
 
 
 class EncryptionOracle(AES):
@@ -587,6 +511,9 @@ class EncryptionOracle(AES):
     def encrypt(self, inpt):
         return super(EncryptionOracle, self).encrypt(inpt, self.key)
 
+    def decrypt(self, inpt):
+        return super(EncryptionOracle, self).decrypt(inpt, self.key)
+
     def __rand_append_input(self, inpt: bytearray):
         append_bytes = randint(5, 10)
         input_len = len(inpt)
@@ -606,34 +533,3 @@ class EncryptionOracle(AES):
     def append_and_encrypt(self, inpt: bytearray):
         inpt_alt = self.__rand_append_input(inpt)
         return self.encrypt(inpt_alt)
-
-
-# def main():
-#     encryptor = AES(mode="CBC")
-#     decryptor = AES(mode="CBC")
-#     # plaintext = bytearray("YELLOW SUBMARINE", "ascii")
-#     infile = "test.txt"
-#     outfile = "test_enc.txt"
-#     with open(infile, "r") as f:
-#         plaintext = bytearray(f.read(), "ascii")
-
-#     key = bytearray("YELLOW SUBMARINE", "ascii")
-
-#     cipher = encryptor.encrypt(plaintext, key)
-#     cipher_encoded = base64.b64encode(cipher)
-
-#     with open(outfile, "w") as f:
-#         f.write(cipher_encoded.decode())
-
-
-#     with open(outfile, "r") as f:
-#         ciphertext = base64.b64decode(f.read())
-
-
-#     plaintext = decryptor.decrypt(ciphertext, key)
-#     # print(plaintext)
-#     print(plaintext.decode())
-
-
-# if __name__ == "__main__":
-#     main()
